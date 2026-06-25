@@ -1,0 +1,2057 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DRAM & NVIDIA 市場情報中心</title>
+<style>
+  /* System font stack — no external requests */
+  :root {
+    --font-mono-def: 'JetBrains Mono', 'Cascadia Code', 'Fira Code', 'SF Mono', 'Consolas', 'Liberation Mono', monospace;
+    --font-sans-def: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  }
+</style>
+<style>
+  :root {
+    --bg-deep:    #050810;
+    --bg-panel:   #0b0f1e;
+    --bg-card:    #0f1628;
+    --bg-hover:   #141c35;
+    --border:     #1e2d52;
+    --border-lit: #2a4080;
+    --accent:     #0ea5e9;
+    --accent-dim: #0369a1;
+    --cyan:       #22d3ee;
+    --green:      #10b981;
+    --amber:      #f59e0b;
+    --red:        #ef4444;
+    --purple:     #a855f7;
+    --text-1:     #e2e8f0;
+    --text-2:     #94a3b8;
+    --text-3:     #475569;
+    --mono:       var(--font-mono-def);
+    --sans:       var(--font-sans-def);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg-deep);
+    color: var(--text-1);
+    font-family: var(--sans);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Scanline overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.08) 2px,
+      rgba(0,0,0,0.08) 4px
+    );
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  /* ── HEADER ── */
+  header {
+    background: linear-gradient(180deg, #080c1a 0%, var(--bg-panel) 100%);
+    border-bottom: 1px solid var(--border-lit);
+    padding: 0 32px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 4px 40px rgba(14,165,233,0.08);
+  }
+
+  .header-inner {
+    max-width: 1400px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 64px;
+    gap: 24px;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .logo-icon {
+    width: 36px; height: 36px;
+    background: linear-gradient(135deg, var(--accent), var(--cyan));
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--mono);
+    font-weight: 700;
+    font-size: 13px;
+    color: #fff;
+    flex-shrink: 0;
+  }
+
+  .logo-text {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+
+  .logo-title {
+    font-family: var(--mono);
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-1);
+    letter-spacing: 0.05em;
+  }
+
+  .logo-sub {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-3);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .header-status {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .live-badge {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--green);
+    letter-spacing: 0.1em;
+  }
+
+  .live-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 8px var(--green);
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.8); }
+  }
+
+  .clock {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-2);
+    letter-spacing: 0.08em;
+  }
+
+  .refresh-btn {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 8px 16px;
+    background: transparent;
+    border: 1px solid var(--border-lit);
+    border-radius: 6px;
+    color: var(--accent);
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .refresh-btn:hover {
+    background: rgba(14,165,233,0.08);
+    border-color: var(--accent);
+    box-shadow: 0 0 16px rgba(14,165,233,0.15);
+  }
+
+  .refresh-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .refresh-btn svg { width: 14px; height: 14px; }
+  .refresh-btn.spinning svg { animation: spin 1s linear infinite; }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── TICKER ── */
+  .ticker-bar {
+    background: var(--bg-panel);
+    border-bottom: 1px solid var(--border);
+    height: 36px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+  }
+
+  .ticker-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--bg-deep);
+    background: var(--accent);
+    padding: 4px 12px;
+    letter-spacing: 0.12em;
+    white-space: nowrap;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+  }
+
+  .ticker-track {
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .ticker-content {
+    display: flex;
+    gap: 0;
+    animation: ticker 40s linear infinite;
+    white-space: nowrap;
+    transform: translateZ(0);
+    will-change: transform;
+  }
+
+  .ticker-item {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-2);
+    padding: 0 32px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .ticker-item span { color: var(--accent); font-weight: 500; }
+  .ticker-item .up { color: var(--green); }
+  .ticker-item .dn { color: var(--red); }
+
+  @keyframes ticker {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+
+  /* ── MAIN ── */
+  main {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 28px 32px 60px;
+  }
+
+  /* ── FILTER TABS ── */
+  .filter-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+  }
+
+  .filter-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-3);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-right: 4px;
+  }
+
+  .tab-btn {
+    padding: 6px 16px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-2);
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+    transition: all 0.18s;
+  }
+
+  .tab-btn:hover {
+    border-color: var(--border-lit);
+    color: var(--text-1);
+  }
+
+  .tab-btn.active {
+    background: rgba(14,165,233,0.12);
+    border-color: var(--accent);
+    color: var(--accent);
+    box-shadow: 0 0 12px rgba(14,165,233,0.12);
+  }
+
+  .tab-btn[data-cat="nvidia"].active {
+    background: rgba(118,185,0,0.1);
+    border-color: #76b900;
+    color: #76b900;
+  }
+
+  .tab-btn[data-cat="samsung"].active   { background: rgba(168,85,247,0.1); border-color: var(--purple); color: var(--purple); }
+  .tab-btn[data-cat="skhynix"].active   { background: rgba(14,165,233,0.1); border-color: var(--cyan); color: var(--cyan); }
+  .tab-btn[data-cat="micron"].active    { background: rgba(239,68,68,0.1); border-color: var(--red); color: var(--red); }
+  .tab-btn[data-cat="nanya"].active     { background: rgba(245,158,11,0.1); border-color: var(--amber); color: var(--amber); }
+  .tab-btn[data-cat="winbond"].active   { background: rgba(16,185,129,0.1); border-color: var(--green); color: var(--green); }
+
+  /* ── GRID ── */
+  .news-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+    gap: 16px;
+  }
+
+  /* ── NEWS CARD ── */
+  .news-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .news-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--card-accent, var(--accent));
+    opacity: 0.6;
+  }
+
+  .news-card:hover {
+    background: var(--bg-hover);
+    border-color: var(--border-lit);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(14,165,233,0.08);
+  }
+
+  .card-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .tag {
+    font-family: var(--mono);
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 4px;
+  }
+
+  .tag-dram    { background: rgba(14,165,233,0.15);  color: var(--accent); }
+  .tag-nvidia  { background: rgba(118,185,0,0.15);   color: #76b900; }
+  .tag-samsung { background: rgba(168,85,247,0.15);  color: var(--purple); }
+  .tag-skhynix { background: rgba(34,211,238,0.15);  color: var(--cyan); }
+  .tag-micron  { background: rgba(239,68,68,0.15);   color: var(--red); }
+  .tag-nanya   { background: rgba(245,158,11,0.15);  color: var(--amber); }
+  .tag-winbond { background: rgba(16,185,129,0.15);  color: var(--green); }
+  .tag-hbm     { background: rgba(168,85,247,0.15);  color: var(--purple); }
+  .tag-pricing { background: rgba(245,158,11,0.15);  color: var(--amber); }
+  .tag-ai      { background: rgba(34,211,238,0.15);  color: var(--cyan); }
+
+  .card-time {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-3);
+    margin-left: auto;
+  }
+
+  .card-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-1);
+    line-height: 1.5;
+  }
+
+  .card-summary {
+    font-size: 12px;
+    color: var(--text-2);
+    line-height: 1.7;
+    flex: 1;
+  }
+
+  .card-source {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-3);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .card-source::before {
+    content: '';
+    display: inline-block;
+    width: 4px; height: 4px;
+    border-radius: 50%;
+    background: var(--text-3);
+  }
+
+  /* ── EMPTY / LOADING ── */
+  .state-box {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 80px 20px;
+    border: 1px dashed var(--border);
+    border-radius: 12px;
+    background: var(--bg-card);
+  }
+
+  .state-box .icon {
+    font-size: 40px;
+    opacity: 0.3;
+  }
+
+  .state-box p {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--text-3);
+    text-align: center;
+    max-width: 400px;
+    line-height: 1.8;
+  }
+
+  .progress-bar {
+    width: 240px;
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--cyan));
+    border-radius: 2px;
+    animation: progress 3s ease-in-out infinite;
+  }
+
+  @keyframes progress {
+    0% { width: 0%; }
+    60% { width: 85%; }
+    100% { width: 100%; }
+  }
+
+  /* ── STATS BAR ── */
+  .stats-bar {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+
+  .stat-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-3);
+  }
+
+  .stat-num {
+    color: var(--text-1);
+    font-weight: 700;
+    font-size: 18px;
+  }
+
+  .stat-divider {
+    width: 1px;
+    height: 24px;
+    background: var(--border);
+  }
+
+  /* ── FOOTER ── */
+  .footer-note {
+    margin-top: 48px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-3);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  /* ── SECTION HEADER ── */
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .section-title {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-3);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  .section-line {
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* ── MARKET SHARE PANEL ── */
+  .ms-panel {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px 28px;
+    margin-bottom: 28px;
+  }
+  .ms-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .ms-title {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-3);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+  .ms-tabs {
+    display: flex;
+    gap: 6px;
+  }
+  .ms-tab {
+    padding: 4px 14px;
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-3);
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    transition: all 0.18s;
+  }
+  .ms-tab.active {
+    background: rgba(14,165,233,0.12);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .ms-tab:hover:not(.active) {
+    border-color: var(--border-lit);
+    color: var(--text-2);
+  }
+  .ms-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 28px 56px;
+  }
+  .ms-chart { display: flex; flex-direction: column; }
+  .ms-chart-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-3);
+    letter-spacing: 0.1em;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .ms-chart-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+  .ms-row {
+    display: grid;
+    grid-template-columns: 80px 1fr 54px;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .ms-company {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-2);
+    white-space: nowrap;
+  }
+  .ms-bar-track {
+    height: 20px;
+    background: rgba(255,255,255,0.04);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .ms-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    width: 0%;
+    transition: width 1.3s cubic-bezier(0.16,1,0.3,1);
+    position: relative;
+    will-change: width;
+  }
+  .ms-bar-fill::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent 50%, rgba(255,255,255,0.1));
+  }
+  .ms-pct {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 700;
+    text-align: right;
+    color: var(--text-1);
+  }
+  .ms-delta {
+    font-family: var(--mono);
+    font-size: 9px;
+    margin-top: 1px;
+    text-align: right;
+  }
+  .ms-delta.up { color: var(--green); }
+  .ms-delta.dn { color: var(--red); }
+  .ms-delta.nc { color: var(--text-3); }
+  .ms-note {
+    margin-top: 18px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--text-3);
+    letter-spacing: 0.06em;
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .ms-legend {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .ms-legend-dot {
+    width: 8px; height: 8px;
+    border-radius: 2px;
+  }
+  /* Responsive */
+  @media (max-width: 768px) {
+    main { padding: 20px 16px 48px; }
+    .header-inner { padding: 0 4px; }
+    header { padding: 0 16px; }
+    .news-grid { grid-template-columns: 1fr; }
+    .clock { display: none; }
+    .stats-bar { gap: 12px; }
+    .ms-grid { grid-template-columns: 1fr; gap: 24px; }
+    .ms-panel { padding: 18px 16px; }
+  }
+
+  /* ── LANG SWITCHER ── */
+  .lang-row {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin-bottom: 20px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    width: fit-content;
+  }
+  .lang-btn {
+    padding: 8px 22px;
+    background: transparent;
+    border: none;
+    color: var(--text-3);
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    transition: all 0.18s;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+  .lang-btn:first-child { border-right: 1px solid var(--border); }
+  .lang-btn.active {
+    background: rgba(14,165,233,0.12);
+    color: var(--accent);
+  }
+  .lang-btn .flag { font-size: 14px; }
+
+  /* ── NEWS CARD (updated) ── */
+  .news-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    cursor: pointer;
+    transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s, background 0.2s;
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 12px;
+    contain: layout style;
+  }
+  .news-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--card-accent, var(--accent));
+    opacity: 0.7;
+  }
+  .news-card:hover {
+    background: var(--bg-hover);
+    border-color: var(--border-lit);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 28px rgba(0,0,0,0.4);
+  }
+  .lang-badge {
+    font-family: var(--mono);
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    padding: 2px 7px;
+    border-radius: 3px;
+  }
+  .lang-badge.zh { background: rgba(34,211,238,0.15); color: var(--cyan); }
+  .lang-badge.en { background: rgba(245,158,11,0.15); color: var(--amber); }
+
+  /* source chips */
+  .source-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-3);
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 2px 8px;
+  }
+  .source-chip::before { content: '◈'; font-size: 8px; }
+
+  @media (max-width: 900px) {
+  }
+
+
+  /* ── ORIGIN / FAB PANEL ── */
+  .origin-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+  }
+  .brand-card {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    position: relative;
+    overflow: hidden;
+  }
+  .brand-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--brand-color, var(--accent));
+  }
+  .brand-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .brand-dot {
+    width: 10px; height: 10px;
+    border-radius: 3px;
+    flex-shrink: 0;
+  }
+  .brand-name {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-1);
+  }
+  .brand-hq {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-3);
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .gen-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .gen-label {
+    font-family: var(--mono);
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    color: var(--text-3);
+    text-transform: uppercase;
+    margin-bottom: 2px;
+  }
+  .fab-row {
+    display: grid;
+    grid-template-columns: 90px 1fr 42px;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 5px;
+  }
+  .fab-location {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-2);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .fab-location .flag { margin-right: 4px; }
+  .fab-bar-track {
+    height: 14px;
+    background: rgba(255,255,255,0.04);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .fab-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 1.2s cubic-bezier(0.16,1,0.3,1);
+    will-change: width;
+  }
+  .fab-pct {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--text-1);
+    text-align: right;
+  }
+  .gen-divider {
+    border: none;
+    border-top: 1px dashed var(--border);
+    margin: 4px 0;
+  }
+  .ddr-ratio-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 2px;
+  }
+  .ddr-ratio-label {
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--text-3);
+    letter-spacing: 0.08em;
+    width: 32px;
+  }
+  .ddr-ratio-track {
+    flex: 1;
+    height: 10px;
+    background: rgba(255,255,255,0.04);
+    border-radius: 3px;
+    overflow: hidden;
+    display: flex;
+  }
+  .ddr-ratio-ddr4 { height: 100%; background: #0ea5e9; }
+  .ddr-ratio-ddr5 { height: 100%; background: #a855f7; }
+  .ddr-ratio-pct {
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--text-2);
+    white-space: nowrap;
+  }
+  .origin-legend {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--text-3);
+  }
+  .origin-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .origin-legend-dot {
+    width: 8px; height: 8px;
+    border-radius: 2px;
+  }
+
+
+  /* ── API KEY MODAL ── */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.75);
+    backdrop-filter: blur(6px);
+    z-index: 9000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .modal-box {
+    background: var(--bg-panel);
+    border: 1px solid var(--border-lit);
+    border-radius: 14px;
+    padding: 32px 36px;
+    max-width: 520px;
+    width: 100%;
+    box-shadow: 0 24px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(14,165,233,0.1);
+    position: relative;
+  }
+  .modal-icon {
+    width: 48px; height: 48px;
+    background: linear-gradient(135deg, var(--accent), var(--cyan));
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+    margin-bottom: 20px;
+  }
+  .modal-title {
+    font-family: var(--mono);
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text-1);
+    margin-bottom: 8px;
+    letter-spacing: 0.04em;
+  }
+  .modal-desc {
+    font-size: 13px;
+    color: var(--text-2);
+    line-height: 1.7;
+    margin-bottom: 24px;
+  }
+  .modal-desc a {
+    color: var(--accent);
+    text-decoration: none;
+  }
+  .modal-desc a:hover { text-decoration: underline; }
+  .api-input-wrap {
+    position: relative;
+    margin-bottom: 16px;
+  }
+  .api-input {
+    width: 100%;
+    background: var(--bg-deep);
+    border: 1px solid var(--border-lit);
+    border-radius: 8px;
+    padding: 12px 48px 12px 16px;
+    color: var(--text-1);
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.04em;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .api-input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(14,165,233,0.1);
+  }
+  .api-input::placeholder { color: var(--text-3); }
+  .api-eye-btn {
+    position: absolute;
+    right: 12px; top: 50%;
+    transform: translateY(-50%);
+    background: none; border: none;
+    color: var(--text-3); cursor: pointer;
+    padding: 4px; font-size: 14px;
+    transition: color 0.2s;
+  }
+  .api-eye-btn:hover { color: var(--text-1); }
+  .api-save-btn {
+    width: 100%;
+    padding: 12px;
+    background: linear-gradient(135deg, var(--accent), #0369a1);
+    border: none;
+    border-radius: 8px;
+    color: #fff;
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.1s;
+  }
+  .api-save-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+  .api-save-btn:active { transform: translateY(0); }
+  .modal-note {
+    margin-top: 16px;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-3);
+    line-height: 1.8;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .modal-note span { display: flex; align-items: flex-start; gap: 6px; }
+  /* API key status chip in header */
+  .api-status-chip {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 5px 12px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.18s;
+    letter-spacing: 0.06em;
+  }
+  .api-status-chip.set {
+    border-color: rgba(16,185,129,0.4);
+    color: var(--green);
+    background: rgba(16,185,129,0.06);
+  }
+  .api-status-chip.unset {
+    border-color: rgba(245,158,11,0.4);
+    color: var(--amber);
+    background: rgba(245,158,11,0.06);
+    animation: pulse-amber 2s ease-in-out infinite;
+  }
+  @keyframes pulse-amber {
+    0%,100% { box-shadow: 0 0 0 0 rgba(245,158,11,0.3); }
+    50%      { box-shadow: 0 0 0 5px rgba(245,158,11,0); }
+  }
+  .api-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+  }
+  .api-status-chip.set .api-dot   { background: var(--green); box-shadow: 0 0 6px var(--green); }
+  .api-status-chip.unset .api-dot { background: var(--amber); box-shadow: 0 0 6px var(--amber); }
+
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="logo">
+      <div class="logo-icon">DR</div>
+      <div class="logo-text">
+        <div class="logo-title">DRAM · NVIDIA · 半導體情報</div>
+        <div class="logo-sub">Market Intelligence Dashboard</div>
+      </div>
+    </div>
+    <div class="header-status">
+      <div class="live-badge">
+        <div class="live-dot"></div>
+        LIVE
+      </div>
+      <div class="clock" id="clock">--:--:--</div>
+      <!-- API Key status chip -->
+      <div class="api-status-chip unset" id="apiChip" onclick="showApiModal()" title="點擊設定 API Key">
+        <div class="api-dot"></div>
+        <span id="apiChipLabel">設定 API Key</span>
+      </div>
+
+      <button class="refresh-btn" id="refreshBtn" onclick="handleRefreshClick()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="23 4 23 10 17 10"></polyline>
+          <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+        </svg>
+        更新情報
+      </button>
+    </div>
+  </div>
+</header>
+
+<div class="ticker-bar">
+  <div class="ticker-label">MARKET</div>
+  <div class="ticker-track">
+    <div class="ticker-content" id="tickerContent">
+      <div class="ticker-item">Samsung Electronics <span class="up">▲ 2.3%</span></div>
+      <div class="ticker-item">SK Hynix <span class="up">▲ 1.8%</span></div>
+      <div class="ticker-item">Micron Technology <span class="dn">▼ 0.5%</span></div>
+      <div class="ticker-item">NVIDIA Corporation <span class="up">▲ 3.1%</span></div>
+      <div class="ticker-item">Nanya Technology <span class="up">▲ 0.7%</span></div>
+      <div class="ticker-item">Winbond Electronics <span class="dn">▼ 0.2%</span></div>
+      <div class="ticker-item">DDR5 現貨均價 <span>$4.82/GB</span></div>
+      <div class="ticker-item">HBM3E 供應 <span class="up">緊俏</span></div>
+      <div class="ticker-item">LPDDR5X 需求 <span class="up">強勁</span></div>
+      <div class="ticker-item">Samsung Electronics <span class="up">▲ 2.3%</span></div>
+      <div class="ticker-item">SK Hynix <span class="up">▲ 1.8%</span></div>
+      <div class="ticker-item">Micron Technology <span class="dn">▼ 0.5%</span></div>
+      <div class="ticker-item">NVIDIA Corporation <span class="up">▲ 3.1%</span></div>
+      <div class="ticker-item">Nanya Technology <span class="up">▲ 0.7%</span></div>
+      <div class="ticker-item">Winbond Electronics <span class="dn">▼ 0.2%</span></div>
+      <div class="ticker-item">DDR5 現貨均價 <span>$4.82/GB</span></div>
+      <div class="ticker-item">HBM3E 供應 <span class="up">緊俏</span></div>
+      <div class="ticker-item">LPDDR5X 需求 <span class="up">強勁</span></div>
+    </div>
+  </div>
+</div>
+
+<main>
+  <div class="filter-row" id="filterRow">
+    <span class="filter-label">篩選：</span>
+    <button class="tab-btn active" data-cat="all" onclick="filterNews('all')">全部</button>
+    <button class="tab-btn" data-cat="dram" onclick="filterNews('dram')">DRAM</button>
+    <button class="tab-btn" data-cat="nvidia" onclick="filterNews('nvidia')">NVIDIA</button>
+    <button class="tab-btn" data-cat="samsung" onclick="filterNews('samsung')">Samsung</button>
+    <button class="tab-btn" data-cat="skhynix" onclick="filterNews('skhynix')">SK Hynix</button>
+    <button class="tab-btn" data-cat="micron" onclick="filterNews('micron')">Micron</button>
+    <button class="tab-btn" data-cat="nanya" onclick="filterNews('nanya')">Nanya</button>
+    <button class="tab-btn" data-cat="winbond" onclick="filterNews('winbond')">Winbond</button>
+  </div>
+
+
+
+  <div class="stats-bar" id="statsBar" style="display:none">
+    <div class="stat-item">
+      <span class="stat-num" id="totalCount">0</span>
+      <span>則新聞</span>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat-item">更新時間：<span id="lastUpdate" style="color:var(--text-2)">—</span></div>
+    <div class="stat-divider"></div>
+    <div class="stat-item">資料來源：AI 即時搜尋</div>
+    <div class="stat-divider"></div>
+    <div class="stat-item" style="gap:8px">
+      <span style="color:var(--accent)">📅 顯示範圍：</span>
+      <select id="dateRangeSelect" onchange="setDateRange(this.value)" style="background:var(--bg-hover);border:1px solid var(--border-lit);border-radius:5px;color:var(--accent);font-family:var(--mono);font-size:11px;font-weight:600;padding:3px 8px;cursor:pointer;outline:none;">
+        <option value="7">過去 1 週</option>
+        <option value="30">過去 1 個月</option>
+        <option value="60">過去 2 個月</option>
+        <option value="90" selected>過去 3 個月</option>
+        <option value="180">過去 6 個月</option>
+        <option value="365">過去 1 年</option>
+        <option value="9999">全部顯示</option>
+      </select>
+    </div>
+  </div>
+
+
+  <!-- MARKET SHARE PANEL -->
+  <div class="ms-panel">
+    <div class="ms-header">
+      <div class="ms-title">&#128202; &nbsp;DRAM 市場佔有率</div>
+      <div class="ms-tabs">
+        <button class="ms-tab active" onclick="switchMsTab('ddr4',this)">DDR4</button>
+        <button class="ms-tab" onclick="switchMsTab('ddr5',this)">DDR5 純規格</button>
+        <button class="ms-tab" onclick="switchMsTab('hbm',this)">HBM</button>
+        <button class="ms-tab" onclick="switchMsTab('origin',this)">🏭 產地分布</button>
+      </div>
+    </div>
+    <div class="ms-grid" id="msGrid"></div>
+    <div class="ms-note" id="msNote"></div>
+  </div>
+
+  <div class="section-header">
+    <span class="section-title" id="sectionTitle">最新動態</span>
+    <div class="section-line"></div>
+  </div>
+
+  <div class="news-grid-wrap" id="newsGridZh">
+    <div class="state-box">
+      <div class="icon">📡</div>
+      <p>點擊右上角「更新情報」按鈕，AI 將即時搜尋 DRAM 與 NVIDIA 最新市場動態，包含 Samsung、SK Hynix、Micron、Nanya、Winbond 的最新消息。</p>
+    </div>
+  </div>
+
+
+
+  <div class="footer-note">
+    <span>DRAM · NVIDIA Market Intelligence Dashboard</span>
+    <span>·</span>
+    <span>資料由 Claude AI 即時搜尋整理</span>
+    <span>·</span>
+    <span id="footerDate"></span>
+  </div>
+</main>
+
+<script>
+
+  // ── API KEY MANAGEMENT ──
+  const API_KEY_STORE = 'dram_api_key';
+
+  function getApiKey() {
+    return localStorage.getItem(API_KEY_STORE) || '';
+  }
+
+  function saveApiKey() {
+    const val = document.getElementById('apiKeyInput').value.trim();
+    if (!val.startsWith('sk-ant-')) {
+      document.getElementById('apiKeyInput').style.borderColor = 'var(--red)';
+      document.getElementById('apiKeyInput').placeholder = '格式錯誤，請確認以 sk-ant- 開頭';
+      return;
+    }
+    localStorage.setItem(API_KEY_STORE, val);
+    updateApiChip();
+    hideApiModal();
+    // Auto-start fetch if no cache
+    const cached = loadCacheAll();
+    if (!cached || cached.length === 0) fetchAllNews();
+  }
+
+  function clearApiKey() {
+    localStorage.removeItem(API_KEY_STORE);
+    document.getElementById('apiKeyInput').value = '';
+    updateApiChip();
+    hideApiModal();
+  }
+
+  function updateApiChip() {
+    const key = getApiKey();
+    const chip = document.getElementById('apiChip');
+    const label = document.getElementById('apiChipLabel');
+    if (key) {
+      chip.className = 'api-status-chip set';
+      label.textContent = 'Key: …' + key.slice(-6);
+    } else {
+      chip.className = 'api-status-chip unset';
+      label.textContent = '設定 API Key';
+    }
+  }
+
+  function showApiModal() {
+    const modal = document.getElementById('apiModal');
+    modal.style.display = 'flex';
+    const existing = getApiKey();
+    const input = document.getElementById('apiKeyInput');
+    input.value = existing || '';
+    input.style.borderColor = '';
+    input.placeholder = 'sk-ant-api03-...';
+    setTimeout(() => input.focus(), 100);
+  }
+
+  function hideApiModal() {
+    document.getElementById('apiModal').style.display = 'none';
+  }
+
+  function handleModalOverlayClick(e) {
+    if (e.target.id === 'apiModal') hideApiModal();
+  }
+
+  function toggleApiVisibility() {
+    const input = document.getElementById('apiKeyInput');
+    const btn   = document.getElementById('eyeBtn');
+    if (input.type === 'password') {
+      input.type = 'text';
+      btn.textContent = '🙈';
+    } else {
+      input.type = 'password';
+      btn.textContent = '👁';
+    }
+  }
+
+  function handleRefreshClick() {
+    if (!getApiKey()) {
+      showApiModal();
+      return;
+    }
+    fetchAllNews();
+  }
+
+  // ESC to close modal
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') hideApiModal();
+  });
+
+// ── Clock ──
+function updateClock() {
+  const now = new Date();
+  const t = now.toLocaleTimeString('zh-TW', { hour12: false });
+  document.getElementById('clock').textContent = t;
+}
+setInterval(updateClock, 1000);
+updateClock();
+document.getElementById('footerDate').textContent = new Date().toLocaleDateString('zh-TW', { year:'numeric', month:'long', day:'numeric' });
+
+// ── State ──
+let allNews = [];
+let currentFilter = 'all';
+
+// ── Smart cache: per-topic, 6-hour TTL ──
+const CACHE_KEY = 'dram_news_v2';
+const CACHE_TTL = 6 * 60 * 60 * 1000; // 6 hours
+
+function saveCacheTopic(topicIdx, articles) {
+  try {
+    const store = JSON.parse(localStorage.getItem(CACHE_KEY) || '{}');
+    store[topicIdx] = { ts: Date.now(), data: articles };
+    localStorage.setItem(CACHE_KEY, JSON.stringify(store));
+  } catch(e) {}
+}
+
+function loadCacheAll() {
+  try {
+    const store = JSON.parse(localStorage.getItem(CACHE_KEY) || '{}');
+    const now = Date.now();
+    let all = [], freshCount = 0;
+    for (const key of Object.keys(store)) {
+      const entry = store[key];
+      if (entry && (now - entry.ts) < CACHE_TTL) {
+        all = all.concat(entry.data || []);
+        freshCount++;
+      }
+    }
+    return freshCount > 0 ? all : null;
+  } catch(e) { return null; }
+}
+
+function getStaleTopics(topicCount) {
+  try {
+    const store = JSON.parse(localStorage.getItem(CACHE_KEY) || '{}');
+    const now = Date.now();
+    const stale = [];
+    for (let i = 0; i < topicCount; i++) {
+      const entry = store[i];
+      if (!entry || (now - entry.ts) >= CACHE_TTL) stale.push(i);
+    }
+    return stale;
+  } catch(e) { return Array.from({length: topicCount}, (_, i) => i); }
+}
+
+// Legacy compat
+function saveCache(data) {}
+function loadCache() { return loadCacheAll(); }
+
+// ── Fetch ──
+async function fetchAllNews(forceRefresh = true) {
+  if (!getApiKey()) { showApiModal(); return; }
+  const btn = document.getElementById('refreshBtn');
+  btn.disabled = true;
+  btn.classList.add('spinning');
+
+  showLoading();
+
+  const queries = [
+    { label: 'DRAM', tags: ['dram'] },
+    { label: 'NVIDIA', tags: ['nvidia'] },
+    { label: 'Samsung DRAM', tags: ['dram', 'samsung'] },
+    { label: 'SK Hynix', tags: ['dram', 'skhynix'] },
+    { label: 'Micron', tags: ['dram', 'micron'] },
+    { label: 'Nanya Winbond', tags: ['nanya', 'winbond'] },
+  ];
+
+  // ── 4 combined topics — fewer API calls, richer results per call ──
+  const zhTopics = [
+    {
+      q: 'DRAM 記憶體市場 DDR5 HBM 報價供需 2025 最新動態 NVIDIA AI 晶片 台灣 亞洲',
+      tags: ['dram','nvidia','hbm','pricing'], lang: 'zh'
+    },
+    {
+      q: 'Samsung 三星 SK Hynix 海力士 HBM3E DDR5 DRAM 記憶體 2025 最新消息',
+      tags: ['dram','samsung','skhynix'], lang: 'zh'
+    },
+    {
+      q: 'Micron 美光 DRAM DDR5 記憶體技術 2025 台灣 市場動態',
+      tags: ['dram','micron'], lang: 'zh'
+    },
+    {
+      q: '南亞科技 Nanya 華邦電子 Winbond DRAM DDR4 DDR5 2025 台灣記憶體廠',
+      tags: ['nanya','winbond','dram'], lang: 'zh'
+    },
+  ];
+
+    const allTopics = zhTopics;
+  // keep legacy vars for tagMap compatibility
+  const searchTopics = allTopics.map(t => t.q);
+  const tagMap = allTopics.map(t => t.tags);
+
+  const results = [];
+
+  // ── Helpers ──
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+  function repairAndParseJSON(raw) {
+    let s = raw.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+    const start = s.indexOf('{'), end = s.lastIndexOf('}');
+    if (start === -1 || end === -1) return null;
+    s = s.slice(start, end + 1);
+    try { return JSON.parse(s); } catch(_) {}
+    s = s.replace(/[\x00-\x1F\x7F]/g, c =>
+      ({'\n':'\\n','\r':'\\r','\t':'\\t'}[c] || ''));
+    try { return JSON.parse(s); } catch(_) {}
+    const get = re => [...s.matchAll(re)].map(m => m[1]);
+    const titles    = get(/"title"\s*:\s*"((?:[^"\\]|\\.)*)"/g);
+    const summaries = get(/"summary"\s*:\s*"((?:[^"\\]|\\.)*)"/g);
+    const sources   = get(/"source"\s*:\s*"((?:[^"\\]|\\.)*)"/g);
+    const times     = get(/"time"\s*:\s*"((?:[^"\\]|\\.)*)"/g);
+    const imports   = get(/"importance"\s*:\s*"(high|medium|low)"/g);
+    const arts = titles.map((t, j) => ({
+      title: t||'(無標題)', summary: summaries[j]||'',
+      source: sources[j]||'AI 整理', time: times[j]||'今日',
+      importance: imports[j]||'medium', tags: [], url: ''
+    }));
+    return arts.length ? { articles: arts } : null;
+  }
+
+  // ── Rate-limit aware fetch with exponential backoff ──
+  const SYS_PROMPT = 'You are a semiconductor industry analyst focused on Asia-Pacific markets. Search for the latest news from Asian sources (DigiTimes, TechNews, MoneyDJ, CTimes, CTEE, etc). Output ONLY a valid JSON object. No markdown, no extra text, no newlines inside string values. Only include articles from the last 3 months. Format: {"articles":[{"title":"繁體中文標題","summary":"2至3句繁體中文摘要（單行）","source":"來源名稱","time":"時間","isoDate":"YYYY-MM-DD","url":"","tags":["tag"],"importance":"high","lang":"zh"}]}. Tags: dram nvidia samsung skhynix micron nanya winbond hbm pricing ai. Output exactly 5 Traditional Chinese articles from the last 3 months. Cover multiple companies/angles from the query.';
+
+  function updateLoadingMsg(msg) {
+    const box = document.querySelector('#newsGridZh .state-box p');
+    if (box) box.innerHTML = msg;
+  }
+
+  async function fetchTopicWithRetry(topic, tags, attempt) {
+    attempt = attempt || 0;
+    const MAX_ATTEMPTS = 2;  // give up fast; user can retry manually
+    try {
+      const resp = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': getApiKey(),
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true'
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 1500,
+          tools: [{ type: 'web_search_20250305', name: 'web_search' }],
+          system: SYS_PROMPT,
+          messages: [{ role: 'user', content: '搜尋最新新聞：' + topic }]
+        })
+      });
+
+      // ── Handle 429 rate limit specifically ──
+      if (resp.status === 429) {
+        const errJson = await resp.json().catch(() => ({}));
+        // Try to read resetsAt from the error body
+        let waitMs = 60000; // default 60s
+        try {
+          const resetsAt = errJson?.error?.message?.match(/"resetsAt"\s*:\s*"([^"]+)"/)?.[1];
+          if (resetsAt) {
+            const resetTime = new Date(resetsAt).getTime();
+            const nowTime = Date.now();
+            waitMs = Math.max(resetTime - nowTime + 2000, 5000);
+          } else {
+            // Exponential backoff: 15s, 30s, 60s, 120s
+            waitMs = Math.min(8000 * Math.pow(2, attempt), 32000);
+          }
+        } catch(_) {
+          waitMs = Math.min(8000 * Math.pow(2, attempt), 32000);
+        }
+        if (attempt < MAX_ATTEMPTS) {
+          const waitSec = Math.ceil(waitMs / 1000);
+          console.warn(`Rate limit hit for "${topic}". Waiting ${waitSec}s before retry ${attempt+1}/${MAX_ATTEMPTS}`);
+          updateLoadingMsg(`⏳ API 頻率限制，等待 ${waitSec} 秒後重試…<br><small>${topic}</small>`);
+          await sleep(waitMs);
+          return fetchTopicWithRetry(topic, tags, attempt + 1);
+        }
+        console.warn(`Topic "${topic}" gave up after ${MAX_ATTEMPTS} rate-limit retries`);
+        return [];
+      }
+
+      if (!resp.ok) {
+        const errTxt = await resp.text().catch(() => '');
+        throw new Error('HTTP ' + resp.status + ' ' + errTxt.slice(0, 100));
+      }
+
+      const data = await resp.json();
+      if (data.type === 'error') throw new Error(data.error?.message || 'API error');
+
+      const fullText = (data.content || [])
+        .map(b => b.type === 'text' ? b.text : '')
+        .filter(Boolean).join(' ');
+
+      const parsed = repairAndParseJSON(fullText);
+      if (!parsed || !parsed.articles) {
+        console.warn('Parse fail for:', topic, fullText.slice(0, 180));
+        return [];
+      }
+
+      return parsed.articles.map(a => {
+        const t = Array.isArray(a.tags) ? a.tags.slice() : [];
+        tags.forEach(tag => { if (!t.includes(tag)) t.push(tag); });
+        return Object.assign({}, a, {
+          tags: t,
+          id: Math.random().toString(36).slice(2),
+          title:   String(a.title   || '').replace(/[\x00-\x1F]/g, ' ').trim(),
+          summary: String(a.summary || '').replace(/[\x00-\x1F]/g, ' ').trim(),
+          source:  String(a.source  || 'AI 整理').trim(),
+          time:    String(a.time    || '今日').trim()
+        });
+      }).filter(a => a.title);
+
+    } catch(err) {
+      console.warn('Topic "' + topic + '" attempt ' + (attempt + 1) + ' failed:', err.message);
+      if (attempt < MAX_ATTEMPTS) {
+        const backoff = Math.min(6000 * Math.pow(2, attempt), 24000);
+        await sleep(backoff);
+        return fetchTopicWithRetry(topic, tags, attempt + 1);
+      }
+      return [];
+    }
+  }
+
+  // ── Sequential fetch: 4 topics, 4s gap, results cached per-topic ──
+  const staleIdxs = getStaleTopics(allTopics.length);
+  const freshAll  = loadCacheAll() || [];
+  results.push.apply(results, freshAll);
+
+  if (staleIdxs.length === 0) {
+    updateLoadingMsg('✅ 快取有效，直接載入');
+  } else {
+    for (let si = 0; si < staleIdxs.length; si++) {
+      const idx = staleIdxs[si];
+      const t   = allTopics[idx];
+      updateLoadingMsg(
+        `🔍 搜尋 ${si + 1} / ${staleIdxs.length}：${t.q.slice(0, 28)}…` +
+        `<br><div class="progress-bar" style="margin-top:12px"><div class="progress-fill"></div></div>`
+      );
+      const arts = await fetchTopicWithRetry(t.q, t.tags, 0);
+      arts.forEach(a => { a.lang = t.lang; });
+      saveCacheTopic(idx, arts);
+      results.push.apply(results, arts);
+      if (si < staleIdxs.length - 1) await sleep(4000);
+    }
+  }
+
+  // Deduplicate per-lang by title prefix
+  const seenTitles = new Set();
+  const deduped = results.filter(a => {
+    const key = (a.title || '').slice(0, 22);
+    if (seenTitles.has(key)) return false;
+    seenTitles.add(key);
+    return true;
+  });
+
+  allNews = deduped;
+
+  renderNews(deduped, currentFilter);
+  updateStats(deduped);
+
+  btn.disabled = false;
+  btn.classList.remove('spinning');
+}
+
+function showLoading() {
+  const loadHtml = `<div class="state-box">
+      <div class="icon">🔍</div>
+      <p>AI 正在即時搜尋…</p>
+      <div class="progress-bar"><div class="progress-fill"></div></div>
+    </div>`;
+  const el = document.getElementById('newsGridZh');
+  if (el) el.innerHTML = loadHtml;
+  document.getElementById('statsBar').style.display = 'none';
+}
+
+
+function filterNews(cat) {
+  currentFilter = cat;
+  document.querySelectorAll('.tab-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.cat === cat);
+  });
+  const sectionMap = {
+    all: '最新動態', dram: 'DRAM 市場', nvidia: 'NVIDIA 動態',
+    samsung: 'Samsung', skhynix: 'SK Hynix', micron: 'Micron',
+    nanya: 'Nanya Technology', winbond: 'Winbond Electronics'
+  };
+  document.getElementById('sectionTitle').textContent = sectionMap[cat] || '最新動態';
+  const cached = loadCache() || allNews;
+  if (cached.length) renderNews(cached, cat);
+}
+
+
+  // ── Date range filter (today → 3 months back) ──
+  // ── Date range state (days) ──
+  let dateRangeDays = 90;
+
+  function setDateRange(days) {
+    dateRangeDays = parseInt(days);
+    const cached = loadCache() || allNews;
+    if (cached.length) renderNews(cached, currentFilter);
+  }
+
+  function isWithinDateRange(article) {
+    if (dateRangeDays >= 9999) return true; // "全部"
+    const maxDays = dateRangeDays;
+
+    // Try isoDate first (most reliable)
+    const iso = article.isoDate || '';
+    if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) {
+      const articleDate = new Date(iso);
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - maxDays);
+      cutoff.setHours(0,0,0,0);
+      return articleDate >= cutoff;
+    }
+
+    // Relative string fallback
+    const t = (article.time || '').toLowerCase();
+    if (!t || t === '今日' || t === '今天' || t.includes('小時') || t.includes('分鐘')
+        || t.includes('hour') || t.includes('min') || t.includes('just')) return true;
+    if (t === '昨天' || t === 'yesterday') return maxDays >= 1;
+
+    const daysAgo = t.match(/(\d+)\s*(天前|days?\s*ago)/i);
+    if (daysAgo) return parseInt(daysAgo[1]) <= maxDays;
+
+    const weeksAgo = t.match(/(\d+)\s*(週前|week)/i);
+    if (weeksAgo) return parseInt(weeksAgo[1]) * 7 <= maxDays;
+
+    const monthsAgo = t.match(/(\d+)\s*(個?月前|month)/i);
+    if (monthsAgo) return parseInt(monthsAgo[1]) * 30 <= maxDays;
+
+    const parsed = new Date(article.time);
+    if (!isNaN(parsed)) {
+      const cutoff2 = new Date();
+      cutoff2.setDate(cutoff2.getDate() - maxDays);
+      return parsed >= cutoff2;
+    }
+    return true; // can't determine — include
+  }
+
+function renderNews(articles, filter) {
+  const accentByTag = {
+    nvidia: '#76b900', samsung: '#a855f7', skhynix: '#22d3ee',
+    micron: '#ef4444', nanya: '#f59e0b', winbond: '#10b981',
+    dram: '#0ea5e9', hbm: '#a855f7', ai: '#22d3ee', pricing: '#f59e0b'
+  };
+
+  function getAccent(tags) {
+    for (const tag of (tags || [])) {
+      if (accentByTag[tag]) return accentByTag[tag];
+    }
+    return '#0ea5e9';
+  }
+
+  function importanceDot(imp) {
+    if (imp === 'high') return '<span style="color:var(--red);font-size:10px">● HIGH</span>';
+    if (imp === 'medium') return '<span style="color:var(--amber);font-size:10px">● MED</span>';
+    return '';
+  }
+
+  function cardHtml(a) {
+    const accent = getAccent(a.tags);
+    const tagHtml = (a.tags || []).slice(0, 3).map(t =>
+      `<span class="tag tag-${t}">${t.toUpperCase()}</span>`
+    ).join('');
+    const langBadge = a.lang === 'zh'
+      ? `<span class="lang-badge zh">亞洲中文</span>`
+      : `<span class="lang-badge en">EN</span>`;
+    const safeUrl = (a.url && a.url.startsWith('http')) ? a.url : '';
+    const onclk = safeUrl ? `onclick="window.open('${safeUrl}','_blank')"` : '';
+    return `<div class="news-card" style="--card-accent:${accent}" ${onclk}>
+      <div class="card-meta">${langBadge}${tagHtml}${importanceDot(a.importance)}
+        <span class="card-time">${a.time || '今日'}</span>
+      </div>
+      <div class="card-title">${a.title}</div>
+      <div class="card-summary">${a.summary}</div>
+      <div class="source-chip">${a.source || 'AI 整理'}</div>
+    </div>`;
+  }
+
+  function emptyBox(msg) {
+    return '<div class="state-box"><div class="icon">🔎</div><p>' + msg + '</p></div>';
+  }
+
+  // Apply category filter then date window
+  let base = filter === 'all' ? articles : articles.filter(a => a.tags && a.tags.includes(filter));
+  base = base.filter(isWithinDateRange);
+
+
+
+  // Render news grid
+  const gZh = document.getElementById('newsGridZh');
+  if (gZh) {
+    gZh.innerHTML = base.length
+      ? base.map(cardHtml).join('')
+      : emptyBox('暫無新聞，請點擊「更新情報」載入。');
+  }
+
+
+
+  // Stats bar
+  document.getElementById('statsBar').style.display = 'flex';
+  document.getElementById('totalCount').textContent = base.length;
+  document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString('zh-TW', { hour12: false });
+}
+
+function updateStats(data) {
+  document.getElementById('totalCount').textContent = data.length;
+  document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString('zh-TW', { hour12: false });
+  document.getElementById('statsBar').style.display = 'flex';
+}
+
+// ── Auto-load from cache on startup ──
+(function init() {
+  updateApiChip();
+  // Show modal on first visit if no key
+  if (!getApiKey()) {
+    setTimeout(showApiModal, 600);
+  }
+  const cached = loadCache();
+  if (cached && cached.length > 0) {
+    allNews = cached;
+    renderNews(cached, 'all');
+    updateStats(cached);
+  }
+})();
+
+// ── Auto-refresh every 6 hours ──
+setInterval(() => {
+  const cached = loadCache();
+  if (!cached) fetchAllNews();
+}, 1000 * 60 * 60 * 6);
+
+// ── MARKET SHARE DATA ──
+const MS_DATA = {
+  ddr4: {
+    label: 'DDR4 全球市場佔有率（整體 DRAM 收益佔比估算）',
+    period: '2025 Q4 實際值',
+    source: 'TrendForce（2026.02.26 報告）',
+    rows: [
+      { company: 'Samsung',  pct: 36.0, prev: 39.3, color: '#a855f7', rev: '$19.3B' },
+      { company: 'SK Hynix', pct: 32.1, prev: 33.2, color: '#22d3ee', rev: '$17.2B' },
+      { company: 'Micron',   pct: 22.4, prev: 26.1, color: '#ef4444', rev: '$12.0B' },
+      { company: 'Nanya',    pct:  1.8, prev:  1.5, color: '#f59e0b', rev: '$970M'  },
+      { company: 'Winbond',  pct:  0.6, prev:  0.5, color: '#10b981', rev: '$297M'  },
+      { company: 'Others',   pct:  7.1, prev:  6.5, color: '#475569', rev: '~$3.8B' },
+    ]
+  },
+  ddr5: {
+    label: 'DDR5（不含 HBM、LPDDR5）各廠全球市場佔有率',
+    period: '2025 Q4 估計值',
+    source: 'TrendForce / Counterpoint Research',
+    rows: [
+      { company: 'Samsung',  pct: 36.0, prev: 32.0, color: '#a855f7', rev: '純 DDR5' },
+      { company: 'SK Hynix', pct: 32.0, prev: 29.0, color: '#22d3ee', rev: '純 DDR5' },
+      { company: 'Micron',   pct: 28.0, prev: 28.0, color: '#ef4444', rev: '純 DDR5' },
+      { company: 'Nanya',    pct:  3.0, prev:  1.5, color: '#f59e0b', rev: '小量出貨' },
+      { company: 'Winbond',  pct:  1.0, prev:  0.5, color: '#10b981', rev: '小量出貨' },
+    ]
+  },
+  hbm: {
+    label: 'HBM 全球市場佔有率（HBM3E 為主）',
+    period: '2025 Q4 估計值',
+    source: 'TrendForce / Counterpoint Research',
+    rows: [
+      { company: 'SK Hynix', pct: 50.0, prev: 53.0, color: '#22d3ee', rev: 'HBM3E 主供 NVIDIA' },
+      { company: 'Samsung',  pct: 37.0, prev: 33.0, color: '#a855f7', rev: 'HBM3E 12-hi 量產' },
+      { company: 'Micron',   pct: 13.0, prev: 14.0, color: '#ef4444', rev: '2026 全年售罄'    },
+    ]
+  }
+};
+
+let currentMsTab = 'ddr4';
+
+function switchMsTab(tab, btn) {
+  currentMsTab = tab;
+  document.querySelectorAll('.ms-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  if (tab === 'origin') { renderOrigin(); } else { renderMarketShare(tab); }
+}
+
+
+// ── BRAND ORIGIN / FAB DATA ──
+const BRAND_ORIGIN = [
+  {
+    company: 'Samsung', hq: '🇰🇷 韓國', color: '#a855f7',
+    ddr4_pct: 40, ddr5_pct: 60,
+    ddr4_fabs: [
+      { loc: '🇰🇷 平澤 P1/P2 (京畿道)',  pct: 48 },
+      { loc: '🇰🇷 華城 (京畿道)',          pct: 35 },
+      { loc: '🇰🇷 器興 (京畿道)',          pct: 10 },
+      { loc: '🇨🇳 西安 (陝西省)',          pct:  7 },
+    ],
+    ddr5_fabs: [
+      { loc: '🇰🇷 平澤 P3/P4 (京畿道)',  pct: 65 },
+      { loc: '🇰🇷 華城 (京畿道)',          pct: 28 },
+      { loc: '🇰🇷 器興 (京畿道)',          pct:  7 },
+    ],
+    note: '1b/1c nm EUV；西安廠生產 NAND，DRAM 集中韓國；P4 為 1c DRAM 專線'
+  },
+  {
+    company: 'SK Hynix', hq: '🇰🇷 韓國', color: '#22d3ee',
+    ddr4_pct: 38, ddr5_pct: 62,
+    ddr4_fabs: [
+      { loc: '🇰🇷 利川 M14/M16 (京畿道)', pct: 42 },
+      { loc: '🇨🇳 無錫 C2F (江蘇省)',      pct: 36 },
+      { loc: '🇰🇷 清州 M15 (忠清北道)',    pct: 22 },
+    ],
+    ddr5_fabs: [
+      { loc: '🇰🇷 利川 M16 (京畿道)',      pct: 55 },
+      { loc: '🇰🇷 清州 M15X (忠清北道)',   pct: 30 },
+      { loc: '🇨🇳 無錫（舊製程，受管制）', pct: 15 },
+    ],
+    note: '無錫廠佔總 DRAM ~36%，受美國出口管制限制升級；HBM 生產集中利川/清州'
+  },
+  {
+    company: 'Micron', hq: '🇺🇸 美國', color: '#ef4444',
+    ddr4_pct: 48, ddr5_pct: 52,
+    ddr4_fabs: [
+      { loc: '🇯🇵 廣島 東廣島市 (日)',    pct: 45 },
+      { loc: '🇹🇼 台中桃園 PSMC 廠 (台)', pct: 30 },
+      { loc: '🇺🇸 波伊西 愛達荷州 (美)',  pct: 25 },
+    ],
+    ddr5_fabs: [
+      { loc: '🇯🇵 廣島 東廣島市 (日)',    pct: 55 },
+      { loc: '🇹🇼 台中桃園 PSMC 廠 (台)', pct: 28 },
+      { loc: '🇺🇸 波伊西 愛達荷州 (美)',  pct: 17 },
+    ],
+    note: '新加坡廠生產 NAND；台灣廠(PSMC)主做封測與部分晶圓；愛達荷新廠預計 2027 量產'
+  },
+  {
+    company: 'Nanya', hq: '🇹🇼 台灣', color: '#f59e0b',
+    ddr4_pct: 90, ddr5_pct: 10,
+    ddr4_fabs: [
+      { loc: '🇹🇼 泰山南林園區 Fab3A (新北市)', pct: 75 },
+      { loc: '🇹🇼 南崁 8吋廠 (桃園市)',         pct: 25 },
+    ],
+    ddr5_fabs: [
+      { loc: '🇹🇼 泰山南林園區 A3-N (新北市)',   pct: 100 },
+    ],
+    note: '所有廠區均在台灣；泰山南林為 12吋主廠；DDR5 佔銷售約 10%（2025 Q4）'
+  },
+  {
+    company: 'Winbond', hq: '🇹🇼 台灣', color: '#10b981',
+    ddr4_pct: 88, ddr5_pct: 12,
+    ddr4_fabs: [
+      { loc: '🇹🇼 台中中科 12吋廠 (台中市)',    pct: 65 },
+      { loc: '🇹🇼 高雄路竹科學園區 12吋廠 (高雄市)', pct: 35 },
+    ],
+    ddr5_fabs: [
+      { loc: '🇹🇼 高雄路竹科學園區 12吋廠 (高雄市)', pct: 100 },
+    ],
+    note: '所有廠區均在台灣；無中國廠；高雄廠 2022 年投產；以 Specialty DRAM 為主'
+  },
+];
+
+function renderOrigin() {
+  const grid = document.getElementById('msGrid');
+  const note = document.getElementById('msNote');
+
+  grid.innerHTML = `<div class="origin-grid">` +
+    BRAND_ORIGIN.map(b => {
+      const d4rows = b.ddr4_fabs.map(f => `
+        <div class="fab-row">
+          <div class="fab-location">${f.loc}</div>
+          <div class="fab-bar-track">
+            <div class="fab-bar-fill" data-pct="${f.pct}"
+              style="width:0%;background:${b.color};opacity:0.75"></div>
+          </div>
+          <div class="fab-pct">${f.pct}%</div>
+        </div>`).join('');
+
+      const d5rows = b.ddr5_fabs.map(f => `
+        <div class="fab-row">
+          <div class="fab-location">${f.loc}</div>
+          <div class="fab-bar-track">
+            <div class="fab-bar-fill" data-pct="${f.pct}"
+              style="width:0%;background:${b.color};opacity:0.9"></div>
+          </div>
+          <div class="fab-pct">${f.pct}%</div>
+        </div>`).join('');
+
+      return `
+      <div class="brand-card" style="--brand-color:${b.color}">
+        <div class="brand-header">
+          <div class="brand-dot" style="background:${b.color}"></div>
+          <div class="brand-name">${b.company}</div>
+          <div class="brand-hq">${b.hq}</div>
+        </div>
+
+        <!-- DDR4 vs DDR5 ratio bar -->
+        <div>
+          <div class="gen-label" style="margin-bottom:6px">產品組合比例</div>
+          <div class="ddr-ratio-row">
+            <div class="ddr-ratio-label">DDR4</div>
+            <div class="ddr-ratio-track">
+              <div class="ddr-ratio-ddr4" style="width:${b.ddr4_pct}%"></div>
+              <div class="ddr-ratio-ddr5" style="width:${b.ddr5_pct}%"></div>
+            </div>
+            <div class="ddr-ratio-pct">${b.ddr4_pct}% / ${b.ddr5_pct}%</div>
+          </div>
+          <div style="display:flex;gap:12px;margin-top:4px">
+            <span style="font-family:var(--mono);font-size:9px;color:#0ea5e9">■ DDR4</span>
+            <span style="font-family:var(--mono);font-size:9px;color:#a855f7">■ DDR5</span>
+          </div>
+        </div>
+
+        <hr class="gen-divider">
+
+        <!-- DDR4 fabs -->
+        <div class="gen-section">
+          <div class="gen-label">🏭 DDR4 生產廠區分布</div>
+          ${d4rows}
+        </div>
+
+        <hr class="gen-divider">
+
+        <!-- DDR5 fabs -->
+        <div class="gen-section">
+          <div class="gen-label">🏭 DDR5 生產廠區分布</div>
+          ${d5rows}
+        </div>
+
+        <div style="font-family:var(--mono);font-size:9px;color:var(--text-3);margin-top:2px">
+          ℹ️ ${b.note}
+        </div>
+      </div>`;
+    }).join('') + `</div>`;
+
+  note.innerHTML = `
+    <span>&#9432; 資料來源：各廠商年報、TrendForce、SEMI</span>
+    <span>&#183;</span>
+    <span>統計期間：2024–2025 年度估計值</span>
+    <span>&#183;</span>
+    <span>廠區產能佔比為估算值，實際以官方公告為準</span>
+    <div class="origin-legend">
+      <div class="origin-legend-item"><div class="origin-legend-dot" style="background:#0ea5e9"></div>DDR4 比例</div>
+      <div class="origin-legend-item"><div class="origin-legend-dot" style="background:#a855f7"></div>DDR5 比例</div>
+      <div class="origin-legend-item">🇰🇷 韓國廠</div>
+      <div class="origin-legend-item">🇺🇸 美國廠</div>
+      <div class="origin-legend-item">🇯🇵 日本廠</div>
+      <div class="origin-legend-item">🇸🇬 新加坡廠</div>
+      <div class="origin-legend-item">🇨🇳 中國廠</div>
+      <div class="origin-legend-item">🇹🇼 台灣廠</div>
+    </div>`;
+
+  // Animate bars after paint
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    document.querySelectorAll('.fab-bar-fill[data-pct]').forEach(el => {
+      el.style.width = el.dataset.pct + '%';
+    });
+  }));
+}
+
+function renderMarketShare(tab) {
+  const d = MS_DATA[tab];
+  if (!d) return;
+  const grid = document.getElementById('msGrid');
+  const note = document.getElementById('msNote');
+
+  // Split rows into two columns
+  const half = Math.ceil(d.rows.length / 2);
+  const col1 = d.rows.slice(0, half);
+  const col2 = d.rows.slice(half);
+
+  function rowHtml(r) {
+    const diff = (r.pct - r.prev).toFixed(1);
+    const diffSign = diff > 0 ? '+' : '';
+    const diffClass = diff > 0 ? 'up' : diff < 0 ? 'dn' : 'nc';
+    const diffTxt = diff == 0 ? 'NC' : diffSign + diff + '%';
+    const revBadge = r.rev ? `<span style="font-family:var(--mono);font-size:9px;color:var(--text-3);margin-left:6px">${r.rev}</span>` : '';
+    return `
+      <div class="ms-row">
+        <div class="ms-company">${r.company}${revBadge}</div>
+        <div class="ms-bar-track">
+          <div class="ms-bar-fill" data-pct="${r.pct}" style="width:0%;background:${r.color};"></div>
+        </div>
+        <div>
+          <div class="ms-pct">${r.pct}%</div>
+          <div class="ms-delta ${diffClass}">${diffTxt}</div>
+        </div>
+      </div>`;
+  }
+
+  function colHtml(rows) {
+    return `<div class="ms-chart">
+      <div class="ms-chart-label">${d.label}</div>
+      ${rows.map(rowHtml).join('')}
+    </div>`;
+  }
+
+  grid.innerHTML = colHtml(col1) + (col2.length ? colHtml(col2) : '<div></div>');
+
+  // Legend note
+  note.innerHTML = `
+    <span>&#9432; 資料來源：${d.source}</span>
+    <span>&#183;</span>
+    <span>統計期間：${d.period}</span>
+    <span>&#183;</span>
+    <span>漲跌幅為與前季比較</span>
+    ${d.rows.map(r => `<span class="ms-legend"><span class="ms-legend-dot" style="background:${r.color}"></span>${r.company}</span>`).join('')}
+  `;
+
+  // Animate bars after paint
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    document.querySelectorAll('.ms-bar-fill[data-pct]').forEach(el => {
+      el.style.width = el.dataset.pct + '%';
+    });
+  }));
+}
+
+// Init market share on load
+renderMarketShare('ddr4');
+
+</script>
+
+  <!-- ── API KEY MODAL ── -->
+  <div class="modal-overlay" id="apiModal" style="display:none" onclick="handleModalOverlayClick(event)">
+    <div class="modal-box">
+      <div class="modal-icon">🔑</div>
+      <div class="modal-title">設定 Anthropic API Key</div>
+      <div class="modal-desc">
+        此儀表板使用 Claude AI 即時搜尋半導體市場新聞，需要您的 Anthropic API Key 才能運作。<br><br>
+        還沒有 Key？前往 <a href="https://console.anthropic.com/settings/keys" target="_blank">console.anthropic.com</a> 免費申請。
+      </div>
+      <div class="api-input-wrap">
+        <input class="api-input" type="password" id="apiKeyInput"
+          placeholder="sk-ant-api03-..." autocomplete="off" spellcheck="false"
+          onkeydown="if(event.key==='Enter') saveApiKey()">
+        <button class="api-eye-btn" id="eyeBtn" onclick="toggleApiVisibility()" title="顯示/隱藏">👁</button>
+      </div>
+      <button class="api-save-btn" onclick="saveApiKey()">✓ &nbsp;儲存並開始使用</button>
+      <div class="modal-note">
+        <span>🔒 Key 僅儲存於您的瀏覽器本機（localStorage），不會傳送給任何第三方。</span>
+        <span>💡 每次 API 呼叫費用約 $0.003–0.01 USD，取決於搜尋量。</span>
+        <span>🗑 <span style="cursor:pointer;color:var(--accent)" onclick="clearApiKey()">清除已儲存的 Key</span></span>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>
